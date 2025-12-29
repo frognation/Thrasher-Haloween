@@ -1,0 +1,23 @@
+{
+  "name": "thrasher-haloween",
+  "version": "1.0.0",
+  "description": "Layered Halloween video controls demo",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frognation/Thrasher-Haloween.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/frognation/Thrasher-Haloween/issues"
+  },
+  "homepage": "https://github.com/frognation/Thrasher-Haloween#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0"
+  }
+}

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layered Halloween Videos</title>
+  <style>
+    :root {
+      --bg: #0f0f10;
+      --panel: #0b0b0c;
+      --text: #d9d9d9;
+      --muted: #7c7c7c;
+      --accent: #ffffff;
+      --control: #1a1a1c;
+      --mask-size: 390px;
+      --mouse-x: 50%;
+      --mouse-y: 50%;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #000;
+      color: var(--text);
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px 64px;
+    }
+
+    main {
+      width: min(1200px, 96vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      max-width: 920px;
+      aspect-ratio: 4 / 5;
+      background: #000;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(0, 0, 0, 0.65);
+      display: grid;
+      place-items: center;
+      padding: 0;
+      margin-inline: auto;
+      max-height: 82vh;
+    }
+
+    .video-stack {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      border-radius: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .video-stack::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      pointer-events: none;
+    }
+
+    video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      transition: opacity 0.06s ease-out;
+    }
+
+    .video.is-top {
+      z-index: 2;
+    }
+
+    .video:not(.is-top) {
+      z-index: 1;
+    }
+
+    .video.flash-off {
+      opacity: 0;
+    }
+
+    .lightning-mode .video {
+      transition: none !important;
+    }
+
+    .video-stack.candle-mode.hovering .video.is-top {
+      -webkit-mask-image: radial-gradient(
+        circle var(--mask-size) at var(--mouse-x) var(--mouse-y),
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0) 70%,
+        rgba(0, 0, 0, 0.18) 77%,
+        rgba(0, 0, 0, 0.45) 84%,
+        rgba(0, 0, 0, 0.7) 90%,
+        rgba(0, 0, 0, 1) 100%
+      );
+      mask-image: radial-gradient(
+        circle var(--mask-size) at var(--mouse-x) var(--mouse-y),
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0) 70%,
+        rgba(0, 0, 0, 0.18) 77%,
+        rgba(0, 0, 0, 0.45) 84%,
+        rgba(0, 0, 0, 0.7) 90%,
+        rgba(0, 0, 0, 1) 100%
+      );
+    }
+
+    .video-stack.lightning-mode .video.is-top {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 12px;
+      background: transparent;
+      border-radius: 12px;
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      width: min(920px, 96vw);
+    }
+
+    .controls-left,
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .controls-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text);
+      font-family: inherit;
+      transition: all 0.18s ease;
+    }
+
+    .chip {
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent;
+      color: var(--accent);
+      font-size: 14px;
+      letter-spacing: 0.2px;
+      min-width: 58px;
+      text-transform: uppercase;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      line-height: 1;
+    }
+
+    .chip.switch.off {
+      background: var(--accent);
+      color: #0d0d0d;
+      border-color: #f2f2f2;
+      box-shadow: 0 6px 16px rgba(255, 255, 255, 0.18);
+    }
+
+    .chip.mode {
+      background: transparent;
+      color: #d9d9d9;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      min-width: 78px;
+      padding: 0 12px;
+      gap: 0;
+    }
+
+    .chip.mode.active {
+      background: #f5f5f5;
+      color: #0d0d0d;
+      border: 1px solid #f5f5f5;
+      box-shadow: 0 6px 16px rgba(255, 255, 255, 0.14);
+    }
+
+    .icon-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0;
+      background: transparent;
+      border-radius: 12px;
+      border: none;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: transparent;
+      border: none;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+
+    .icon-btn svg {
+      display: block;
+      width: 26px;
+      height: 24px;
+    }
+
+    .chip.mode svg {
+      display: block;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.9;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      position: relative;
+      display: inline-block;
+    }
+
+    .pause-icon {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .pause-bar {
+      width: 8px;
+      height: 26px;
+      background: #d9d9d9;
+    }
+    .play-icon {
+      width: 20px;
+      height: 26px;
+      display: block;
+    }
+
+    .icon.prev::before,
+    .icon.prev::after,
+    .icon.next::before,
+    .icon.next::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      top: 2px;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+    }
+
+    .icon.prev::before {
+      left: 2px;
+      border-right: 8px solid var(--accent);
+    }
+
+    .icon.prev::after {
+      right: 2px;
+      border-right: 8px solid var(--accent);
+    }
+
+    .icon.next::before {
+      left: 2px;
+      border-left: 8px solid var(--accent);
+    }
+
+    .icon.next::after {
+      right: 2px;
+      border-left: 8px solid var(--accent);
+    }
+
+    .icon.lightning {
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, var(--accent) 0%, #fffb91 100%);
+      clip-path: polygon(45% 0, 100% 0, 58% 56%, 80% 56%, 35% 100%, 52% 60%, 32% 60%);
+      filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.45));
+    }
+
+    .icon.candle {
+      position: relative;
+      width: 14px;
+      height: 18px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+    }
+
+    .icon.candle::before {
+      content: '';
+      position: absolute;
+      top: -7px;
+      left: 4px;
+      width: 6px;
+      height: 10px;
+      background: radial-gradient(ellipse at 50% 30%, #fff8b5 0%, #ffdc64 60%, transparent 80%);
+      transform: rotate(-4deg);
+    }
+
+    .icon.candle::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      left: 3px;
+      width: 6px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="stage">
+      <div class="video-stack candle-mode" id="videoStack">
+        <video id="backVideo" class="video back" src="videos/back.mp4" autoplay muted loop playsinline></video>
+        <video id="frontVideo" class="video front is-top" src="videos/front.mp4" autoplay muted loop playsinline></video>
+      </div>
+    </section>
+    <section class="controls">
+      <div class="controls-left">
+        <button id="switchBtn" class="chip switch on" aria-label="Switch layer order">ON</button>
+      </div>
+
+      <div class="controls-center">
+        <div class="icon-row">
+          <button id="prevBtn" class="icon-btn" aria-label="Prev segment">
+            <svg width="28" height="26" viewBox="0 0 28 26" fill="none" aria-hidden="true">
+              <path d="M0 13L15.66 0L15.66 26L0 13Z" fill="#D9D9D9" />
+              <path d="M12 13L27.6537 0L27.6537 26L12 13Z" fill="#D9D9D9" />
+            </svg>
+          </button>
+          <button id="playBtn" class="icon-btn" aria-label="Play or pause">
+            <span id="playIcon">
+              <div class="pause-icon" aria-hidden="true">
+                <div class="pause-bar"></div>
+                <div class="pause-bar"></div>
+              </div>
+            </span>
+          </button>
+          <button id="nextBtn" class="icon-btn" aria-label="Next segment">
+            <svg width="28" height="26" viewBox="0 0 28 26" fill="none" aria-hidden="true">
+              <path d="M27.6537 13L11.9937 26L11.9937 0L27.6537 13Z" fill="#D9D9D9" />
+              <path d="M12 13L0 26L0 0L12 13Z" fill="#D9D9D9" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="controls-right">
+        <button id="candleBtn" class="chip mode active" aria-pressed="true" aria-label="Candle mode">CANDLE</button>
+        <button id="lightningBtn" class="chip mode" aria-pressed="false" aria-label="Lightning mode">LIGHTNING</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const stack = document.getElementById('videoStack');
+    const frontVideo = document.getElementById('frontVideo');
+    const backVideo = document.getElementById('backVideo');
+    const switchBtn = document.getElementById('switchBtn');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const candleBtn = document.getElementById('candleBtn');
+    const lightningBtn = document.getElementById('lightningBtn');
+
+    let lightningTimer = null;
+    let lightningActive = false;
+
+    const videos = [frontVideo, backVideo];
+
+    function getTopVideo() {
+      return frontVideo.classList.contains('is-top') ? frontVideo : backVideo;
+    }
+
+    function setTopLayer(frontOnTop) {
+      frontVideo.classList.toggle('is-top', frontOnTop);
+      backVideo.classList.toggle('is-top', !frontOnTop);
+      switchBtn.classList.toggle('off', !frontOnTop);
+      switchBtn.textContent = frontOnTop ? 'ON' : 'OFF';
+    }
+
+    function isPlaying() {
+      return !frontVideo.paused && !frontVideo.ended;
+    }
+
+    function renderPlayIcon(playing) {
+      if (playing) {
+        playIcon.innerHTML = '<div class="pause-icon" aria-hidden="true"><div class="pause-bar"></div><div class="pause-bar"></div></div>';
+      } else {
+        playIcon.innerHTML = '<svg class="play-icon" viewBox="0 0 21 27" fill="none" aria-hidden="true"><path d="M0 0L21 13.5L0 27V0Z" fill="#D9D9D9" /></svg>';
+      }
+    }
+
+    function playVideos() {
+      videos.forEach(v => v.play().catch(() => {}));
+      renderPlayIcon(true);
+    }
+
+    function pauseVideos() {
+      videos.forEach(v => v.pause());
+      renderPlayIcon(false);
+    }
+
+    function jumpTo(calculator) {
+      const ref = getTopVideo();
+      const wasPlaying = !ref.paused && !ref.ended;
+      const relative = ref.currentTime % 20;
+      const target = calculator(relative);
+
+      videos.forEach(v => {
+        const duration = isNaN(v.duration) ? null : v.duration;
+        const safeTarget = duration ? Math.min(target, Math.max(duration - 0.05, 0)) : target;
+        v.currentTime = Math.max(0, safeTarget);
+      });
+
+      if (wasPlaying) {
+        playVideos();
+      } else {
+        pauseVideos();
+      }
+    }
+
+    function handlePrev() {
+      jumpTo(t => {
+        if (t < 5) return 15;
+        if (t < 10) return 0;
+        if (t < 15) return 5;
+        if (t < 20) return 10;
+        return 0;
+      });
+    }
+
+    function handleNext() {
+      jumpTo(t => {
+        if (t < 5) return 5;
+        if (t < 10) return 10;
+        if (t < 15) return 15;
+        if (t < 20) return 0;
+        return 0;
+      });
+    }
+
+    function stopLightning() {
+      lightningActive = false;
+      if (lightningTimer) {
+        clearTimeout(lightningTimer);
+        lightningTimer = null;
+      }
+      videos.forEach(v => v.classList.remove('flash-off'));
+    }
+
+    function startLightning() {
+      stopLightning();
+      lightningActive = true;
+
+      const runCycle = () => {
+        if (!lightningActive) return;
+        const flashes = 1 + Math.floor(Math.random() * 3); // 1-3 bursts
+        let count = 0;
+
+        const flash = () => {
+          if (!lightningActive) return;
+          const top = getTopVideo();
+          top.classList.add('flash-off');
+
+          const offDuration = 60 + Math.random() * 200; // keep reveal a bit varied
+          setTimeout(() => {
+            top.classList.remove('flash-off');
+            count += 1;
+            if (count < flashes) {
+              const delay = 20 + Math.random() * 80; // faster blinking within a burst
+              lightningTimer = setTimeout(flash, delay);
+            } else {
+              const rest = 500 + Math.random() * 1200; // moderate quiet gaps
+              lightningTimer = setTimeout(runCycle, rest);
+            }
+          }, offDuration);
+        };
+
+        flash();
+      };
+
+      runCycle();
+    }
+
+    function setMode(mode) {
+      const candleMode = mode === 'candle';
+      candleBtn.classList.toggle('active', candleMode);
+      candleBtn.setAttribute('aria-pressed', candleMode);
+      lightningBtn.classList.toggle('active', !candleMode);
+      lightningBtn.setAttribute('aria-pressed', !candleMode);
+
+      stack.classList.toggle('candle-mode', candleMode);
+      stack.classList.toggle('lightning-mode', !candleMode);
+
+      if (candleMode) {
+        stopLightning();
+      } else {
+        startLightning();
+      }
+    }
+
+    function updateMaskPosition(event) {
+      if (!stack.classList.contains('candle-mode')) return;
+      const rect = stack.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      stack.style.setProperty('--mouse-x', `${x}%`);
+      stack.style.setProperty('--mouse-y', `${y}%`);
+    }
+
+    switchBtn.addEventListener('click', () => {
+      const frontOnTop = !frontVideo.classList.contains('is-top');
+      setTopLayer(frontOnTop);
+    });
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying()) {
+        pauseVideos();
+      } else {
+        playVideos();
+      }
+    });
+
+    prevBtn.addEventListener('click', handlePrev);
+    nextBtn.addEventListener('click', handleNext);
+
+    candleBtn.addEventListener('click', () => setMode('candle'));
+    lightningBtn.addEventListener('click', () => setMode('lightning'));
+
+    stack.addEventListener('pointermove', updateMaskPosition);
+    stack.addEventListener('pointerenter', () => {
+      if (stack.classList.contains('candle-mode')) {
+        stack.classList.add('hovering');
+      }
+    });
+    stack.addEventListener('pointerleave', () => stack.classList.remove('hovering'));
+
+    function init() {
+      setTopLayer(true);
+      renderPlayIcon(true);
+      setMode('candle');
+      playVideos();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        pauseVideos();
+      } else if (!document.hidden && !lightningActive) {
+        playVideos();
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
